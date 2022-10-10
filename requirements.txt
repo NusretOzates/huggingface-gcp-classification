@@ -1,0 +1,4 @@
+tensorflow
+transformers
+google-cloud-aiplatform
+google-cloud-storage
