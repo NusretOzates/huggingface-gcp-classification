@@ -17,6 +17,13 @@ PROJECT_NAME = "ageless-wall-364306"
 BUCKET_NAME = "ageless-wall-364306-vertex-ai"
 REPOSITORY_NAME = "vertex-ai-images"
 LOCATION = "europe-west4"
+# I'm assuming the reader created a docker artifact at the artifact registry with a name 'vertex-ai-images'
+IMAGE_URI = (
+    f"{LOCATION}-docker.pkg.dev/{PROJECT_NAME}/{REPOSITORY_NAME}/tweet_eval:hypertune"
+)
+
+# For having unique names for the training jobs
+TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
 
 
 def upload_to_gcs():
@@ -38,18 +45,6 @@ def upload_to_gcs():
 
 
 aiplatform.init(project=PROJECT_NAME, location=LOCATION, staging_bucket=BUCKET_NAME)
-
-metric_spec = {"accuracy": "maximize"}
-
-parameter_spec = {
-    "lr": hpt.DoubleParameterSpec(min=0.001, max=1, scale="log"),
-    "epochs": hpt.IntegerParameterSpec(min=1, max=3, scale="linear"),
-}
-
-# I'm assuming the reader created a docker artifact at the artifact registry with a name 'vertex-ai-images'
-IMAGE_URI = (
-    f"{LOCATION}-docker.pkg.dev/{PROJECT_NAME}/vertex-ai-images/tweet_eval:hypertune"
-)
 
 """
 RUN ONLY ONCE THIS TAKES FOREVER
@@ -101,13 +96,18 @@ worker_pool_specs = [
     },
 ]
 
-TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
-
 JOB_NAME = "custom_nlp_training-hyperparameter-job " + TIMESTAMP
 
 custom_job = aiplatform.CustomJob(
     display_name=JOB_NAME, project=PROJECT_NAME, worker_pool_specs=worker_pool_specs
 )
+
+metric_spec = {"accuracy": "maximize"}
+
+parameter_spec = {
+    "lr": hpt.DoubleParameterSpec(min=0.001, max=1, scale="log"),
+    "epochs": hpt.IntegerParameterSpec(min=1, max=3, scale="linear"),
+}
 
 hp_job = aiplatform.HyperparameterTuningJob(
     display_name=JOB_NAME,
@@ -130,30 +130,26 @@ print(best_trial)
 print(best_accuracy)
 print(best_values)
 
-# The difference is not only /training /prediction. train image's name starts with tf, deploy image starts with tf2
-DEPLOY_IMAGE = "europe-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-9:latest"
-
-print("Deployment:", DEPLOY_IMAGE)
-
 MACHINE_TYPE = "n1-standard"
 VCPU = "4"
 
 TRAIN_COMPUTE = MACHINE_TYPE + "-" + VCPU
 print("Train machine type", TRAIN_COMPUTE)
 
-VCPU = "4"
-DEPLOY_COMPUTE = MACHINE_TYPE + "-" + VCPU
-print("Deploy machine type", DEPLOY_COMPUTE)
+# The difference is not only /training /prediction. train image's name starts with tf, deploy image starts with tf2
+DEPLOY_IMAGE = "europe-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-9:latest"
+
+print("Deployment:", DEPLOY_IMAGE)
 
 container_job = aiplatform.CustomContainerTrainingJob(
-    display_name="custom_nlp_training",
+    display_name=f"custom_nlp_training_{TIMESTAMP}",
     container_uri=IMAGE_URI,
     model_serving_container_image_uri=DEPLOY_IMAGE,
     project=PROJECT_NAME,
 )
 
-container_spec['args'].pop()
-container_spec['args'].append(f"--hp=False")
+container_spec["args"].pop()
+container_spec["args"].append(f"--hp=False")
 container_spec["args"].append(f"--lr={best_values['lr']}")
 container_spec["args"].append(f"--epochs={int(best_values['epochs'])}")
 
@@ -164,6 +160,10 @@ model = container_job.run(
     machine_type=TRAIN_COMPUTE,
     sync=True,
 )
+
+VCPU = "4"
+DEPLOY_COMPUTE = MACHINE_TYPE + "-" + VCPU
+print("Deploy machine type", DEPLOY_COMPUTE)
 
 # Create an endpoint
 endpoint = model.deploy(machine_type=DEPLOY_COMPUTE, sync=True)
@@ -179,6 +179,6 @@ prediction: Prediction = endpoint.predict(instances=[example_text])
 print(prediction.predictions[0])
 index = np.argmax(prediction.predictions[0])
 
-id_to_label = {0: "anger", 1: "joy", 2: "optimism", 3: "saddness"}
+id_to_label = {0: "anger", 1: "joy", 2: "optimism", 3: "sadness"}
 
 print(id_to_label[index])

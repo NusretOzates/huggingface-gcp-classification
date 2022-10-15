@@ -120,7 +120,9 @@ def hf_to_tf(dataset: datasets.Dataset, shuffle: bool) -> tf.data.Dataset:
         TF Dataset object
     """
 
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer, return_tensors="tf", padding=False)
+    data_collator = DataCollatorWithPadding(
+        tokenizer=tokenizer, return_tensors="tf", padding=False
+    )
 
     NUM_WORKERS = strategy.num_replicas_in_sync
     # Here the batch size scales up by number of workers since

@@ -1,4 +1,5 @@
 all: isort reformat lint mypy
+format: isort reformat
 
 isort:
 	isort .
