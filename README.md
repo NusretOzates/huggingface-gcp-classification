@@ -12,5 +12,5 @@ Part 1: https://medium.com/@m.nusret.ozates/tuning-and-deploying-hf-transformers
 
 Part 2: https://medium.com/@m.nusret.ozates/tuning-and-deploying-hf-transformers-with-vertex-ai-part-2-training-code-591186445a2a
 
-Part 3: Coming soon
+Part 3: https://medium.com/@m.nusret.ozates/tuning-and-deploying-huggingface-transformers-with-vertex-ai-part-3-start-distributed-tuning-and-e0943bfc9d4b
 
