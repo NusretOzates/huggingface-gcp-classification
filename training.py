@@ -9,10 +9,6 @@ from google.cloud.aiplatform.models import Prediction
 from google.cloud.storage.bucket import Bucket
 from transformers import AutoTokenizer
 
-os.environ[
-    "GOOGLE_APPLICATION_CREDENTIALS"
-] = r"C:\Users\nozat\Downloads\ageless-wall-364306-8f97a4df0351.json"
-
 PROJECT_NAME = "ageless-wall-364306"
 BUCKET_NAME = "ageless-wall-364306-vertex-ai"
 REPOSITORY_NAME = "vertex-ai-images"
