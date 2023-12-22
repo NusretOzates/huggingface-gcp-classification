@@ -99,7 +99,7 @@ def _is_chief(task_type, task_id):
     tf_config = json.loads(os.environ.get("TF_CONFIG", "{}"))
     cluster = tf_config["cluster"]
 
-    if ("chief" in cluster) and "worker" in cluster:
+    if "chief" in cluster and "worker" in cluster:
         return task_type == "chief"
 
     return (
@@ -230,18 +230,17 @@ def train(model: keras.Model, train: tf.data.Dataset, validation: tf.data.Datase
         "model-chef" if _is_chief(task_type, task_id) else f"workertemp_{task_id}"
     )
 
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=f"{base_callback_folder}{filepath}",
-        monitor="val_accuracy",
-        mode="max",
-        save_best_only=True,
+
+    restoration_callback = keras.callbacks.BackupAndRestore(
+        backup_dir=f"{base_callback_folder}{filepath}",
+        save_before_preemption=True
     )
 
     history = model.fit(
         train,
         epochs=args.epochs,
         validation_data=validation,
-        callbacks=[model_checkpoint_callback],
+        callbacks=[restoration_callback],
     )
 
     hp_metric = history.history["val_accuracy"][-1]
